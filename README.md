@@ -178,12 +178,16 @@ Contenu :
 
 ```yaml
 ---
-- name: Déployer Apache sur le client Ansible
-  hosts: webservers
+- name: Deploy apache with index.html
+  hosts: localhost
   become: true
 
   roles:
     - apache
+
+  vars:
+    src: "/etc/ansible/roles/apache/file/index.html"
+    dest: "/var/www/html"
 ```
 
 Ce playbook cible le groupe `webservers` défini dans l’inventaire et appelle le rôle `apache`.
@@ -204,19 +208,13 @@ Contenu :
 
 ```yaml
 ---
-apache_package_name: apache2
-apache_service_name: apache2
 
-apache_listen_port: 80
-apache_server_name: "_"
-
-apache_document_root: /var/www/html
-apache_index_file: /var/www/html/index.html
-
-apache_site_available: /etc/apache2/sites-available/000-default.conf
+src: ""
+dest: ""
 ```
 
-Ce fichier contient les variables par défaut du rôle `apache`.
+Ici on ne les met pas puisqu’elles seront mises dans le playbook 
+
 
 ---
 
@@ -232,47 +230,26 @@ Contenu :
 
 ```yaml
 ---
-- name: Mettre à jour le cache APT
+- name: apt update && install apache
   ansible.builtin.apt:
-    update_cache: true
-    cache_valid_time: 3600
-
-- name: Installer Apache
-  ansible.builtin.apt:
-    name: "{{ apache_package_name }}"
+    name: apache2
     state: present
+    update_cache: yes
 
-- name: Vérifier que le dossier web existe
-  ansible.builtin.file:
-    path: "{{ apache_document_root }}"
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
+- name: copy index.html
+  ansible.builtin.copy:
+    src: "{{ src }}"
+    dest: "{{ dest }}"
+    owner: kira
+    group: kira
+    mode: '0644'
 
-- name: Déployer la configuration du site Apache par défaut
-  ansible.builtin.template:
-    src: apache-site.conf.j2
-    dest: "{{ apache_site_available }}"
-    owner: root
-    group: root
-    mode: "0644"
-  notify: Reload apache
-
-- name: Déployer la page d'accueil Apache
-  ansible.builtin.template:
-    src: index.html.j2
-    dest: "{{ apache_index_file }}"
-    owner: root
-    group: root
-    mode: "0644"
-  notify: Reload apache
-
-- name: Démarrer et activer le service Apache
-  ansible.builtin.service:
-    name: "{{ apache_service_name }}"
+- name: enable, start and daemon-reload apache
+  ansible.builtin.systemd:
+    name: apache2
     state: started
     enabled: true
+    daemon_reload: true
 ```
 
 Le module `ansible.builtin.apt` gère les paquets APT. Il est donc adapté pour installer `apache2` sur une distribution Debian ou Ubuntu.
