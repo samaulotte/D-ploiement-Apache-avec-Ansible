@@ -186,7 +186,7 @@ Contenu :
     - apache
 
   vars:
-    src: "/etc/ansible/roles/apache/file/index.html"
+    src: "/etc/ansible/roles/apache/files/index.html"
     dest: "/var/www/html"
 ```
 
